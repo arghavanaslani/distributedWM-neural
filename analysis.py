@@ -57,7 +57,7 @@ from scipy.stats import t as t_dist
 # CONFIG  ← edit here
 # ══════════════════════════════════════════════════════════════════════════════
 
-RESULTS_DIR  = '/home/aarghavan/aslan/delsac-neural-decoding/results/'
+RESULTS_DIR  = '/home/aarghavan/aslan/distributedWM-neural/results/'
 PKL_DIR      = os.path.join(RESULTS_DIR, 'pkl')      # all .pkl output files
 FIG_DIR      = os.path.join(RESULTS_DIR, 'figures')  # all .svg output files
 BEHAVIOR_CSV = '/home/aarghavan/aslan/data/behavior_all.csv'   # fallback only

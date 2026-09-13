@@ -33,7 +33,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.stats import wilcoxon, ttest_1samp, spearmanr
 
-RESULTS_DIR = '/home/aarghavan/aslan/delsac-neural-decoding/results/'
+RESULTS_DIR = '/home/aarghavan/aslan/distributedWM-neural/results/'
 PKL_DIR     = os.path.join(RESULTS_DIR, 'pkl')
 FIG_DIR     = os.path.join(RESULTS_DIR, 'figures')
 AREAS       = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']

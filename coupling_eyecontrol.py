@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import wilcoxon, ttest_1samp
 
-RESULTS_DIR = '/home/aarghavan/aslan/delsac-neural-decoding/results/pkl/'
+RESULTS_DIR = '/home/aarghavan/aslan/distributedWM-neural/results/pkl/'
 ERRORS_CSV  = os.path.join(RESULTS_DIR, 'errors_angular.csv')
 BEHAVIOR_CSV = '/home/aarghavan/aslan/data/behavior_all.csv'
 AREAS       = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']

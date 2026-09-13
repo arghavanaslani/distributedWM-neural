@@ -44,10 +44,10 @@ from scipy.stats import linregress, ttest_1samp, wilcoxon, mannwhitneyu
 # CONFIG  ← edit paths and parameters here
 # ══════════════════════════════════════════════════════════════════════════════
 
-BASELINE_PKL   = '/home/aarghavan/aslan/delsac-neural-decoding/results/neurobeh_baseline.pkl'
-ERRORS_CSV     = '/home/aarghavan/aslan/delsac-neural-decoding/results/errors_angular.csv'
+BASELINE_PKL   = '/home/aarghavan/aslan/distributedWM-neural/results/neurobeh_baseline.pkl'
+ERRORS_CSV     = '/home/aarghavan/aslan/distributedWM-neural/results/errors_angular.csv'
 BEHAVIOR_CSV   = '/home/aarghavan/aslan/data/behavior_all.csv'   # fallback only
-RESULTS_DIR    = '/home/aarghavan/aslan/delsac-neural-decoding/results/'
+RESULTS_DIR    = '/home/aarghavan/aslan/distributedWM-neural/results/'
 
 AREAS      = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
 # AREAS      = ['PFC', 'FEF', 'LIP']
