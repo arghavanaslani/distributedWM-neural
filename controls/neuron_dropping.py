@@ -71,6 +71,8 @@ from config import (
     T_START,
     WINDOW_S,
 )
+from core.metrics import circ_corr
+from core.stats import mean_sem
 
 ANGLE_XY    = ('targetX', 'targetY')          # decode these, recombine via arctan2
 
@@ -130,14 +132,6 @@ def _delay_mask(n_bins):
     return (t >= _DELAY_START_EFF) & (t <= DELAY_END)
 
 
-def _circ_corr(a, b):
-    """Circular correlation coefficient between two angle vectors (radians)."""
-    a_bar = np.arctan2(np.nanmean(np.sin(a)), np.nanmean(np.cos(a)))
-    b_bar = np.arctan2(np.nanmean(np.sin(b)), np.nanmean(np.cos(b)))
-    sa = np.sin(a - a_bar); sb = np.sin(b - b_bar)
-    num = np.nansum(sa * sb)
-    den = np.sqrt(np.nansum(sa ** 2) * np.nansum(sb ** 2))
-    return num / den if den > 0 else np.nan
 
 
 def _decode_once(Xd, tX, tY):
@@ -155,7 +149,7 @@ def _decode_once(Xd, tX, tY):
     pred_ang = np.arctan2(predY, predX)
     true_ang = np.arctan2(tY, tX)
     err = np.arctan2(np.sin(true_ang - pred_ang), np.cos(true_ang - pred_ang))
-    return np.degrees(np.nanmean(np.abs(err))), _circ_corr(pred_ang, true_ang)
+    return np.degrees(np.nanmean(np.abs(err))), circ_corr(pred_ang, true_ang)
 
 
 def _process_session(area, s, X_area, tX, tY, seed):
@@ -251,11 +245,6 @@ for area, s, out in results:
     for N, (deg, r) in out.items():
         per_area[area][N].append((s, deg, r))
 
-def _mean_sem(vals):
-    v = np.asarray([x for x in vals if np.isfinite(x)], float)
-    if len(v) == 0:
-        return np.nan, np.nan, 0
-    return v.mean(), (v.std(ddof=1) / np.sqrt(len(v)) if len(v) > 1 else np.nan), len(v)
 
 curve = {a: {'N': [], 'deg_mean': [], 'deg_sem': [], 'r_mean': [], 'r_sem': [], 'n_sess': []}
          for a in AREAS}
@@ -264,8 +253,8 @@ for a in AREAS:
         rows = per_area[a][N]
         if len(rows) < MIN_SESSIONS_PER_POINT:
             continue
-        dmean, dsem, nd = _mean_sem([d for _, d, _ in rows])
-        rmean, rsem, _  = _mean_sem([r for _, _, r in rows])
+        dmean, dsem, nd = mean_sem([d for _, d, _ in rows], ddof=1)
+        rmean, rsem, _  = mean_sem([r for _, _, r in rows], ddof=1)
         curve[a]['N'].append(N)
         curve[a]['deg_mean'].append(dmean); curve[a]['deg_sem'].append(dsem)
         curve[a]['r_mean'].append(rmean);   curve[a]['r_sem'].append(rsem)
@@ -295,8 +284,8 @@ for N in MATCHED_N:
         rows = per_area[a][N]
         degs = [d for _, d, _ in rows]
         rs   = [r for _, _, r in rows]
-        dmean, dsem, nd = _mean_sem(degs)
-        rmean, rsem, _  = _mean_sem(rs)
+        dmean, dsem, nd = mean_sem(degs, ddof=1)
+        rmean, rsem, _  = mean_sem(rs, ddof=1)
         tbl.append({'area': a, 'deg_mean': dmean, 'deg_sem': dsem,
                     'r_mean': rmean, 'r_sem': rsem, 'n_sess': nd,
                     'p_vs_chance': _p_vs_chance(degs)})
