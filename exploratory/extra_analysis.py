@@ -40,7 +40,7 @@ from config import PKL_DIR, FIG_DIR, AREA_COLORS, EV_TARGET_ON
 # _stars still comes from analysis; importing it does NOT run analysis's
 # pipeline (main() is guarded by __main__), it only defines helpers and creates
 # the output directories.
-from analysis import _stars
+from pipeline.analysis import _stars
 
 
 # ══════════════════════════════════════════════════════════════════════════════
