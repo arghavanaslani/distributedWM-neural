@@ -300,39 +300,6 @@ def _draw_sig_ribbon(ax, t, sig_mask, color, y_pos, height=0.012, alpha=0.4):
                     transform=ax.get_xaxis_transform(), clip_on=False)
 
 
-def _bar_plot(areas, means_d, sems_d, means_r, sems_r,
-              ylabel, title, save_path,
-              pvals_d=None, pvals_r=None, group_label=None):
-    x         = np.arange(len(areas))
-    bar_width  = 0.35
-    fig, ax    = plt.subplots(figsize=(11, 5))
-    for i, area in enumerate(areas):
-        ec = AREA_COLORS.get(area, 'k')
-        ax.bar(x[i] - bar_width/2, means_d[i], bar_width,
-               yerr=sems_d[i], capsize=5, color='lightgray', edgecolor=ec, linewidth=2,
-               label=('Delay' if i == 0 else '_'))
-        ax.bar(x[i] + bar_width/2, means_r[i], bar_width,
-               yerr=sems_r[i], capsize=5, color='lightblue', edgecolor=ec, linewidth=2,
-               label=('Response' if i == 0 else '_'))
-        if pvals_d is not None:
-            _annotate_bar(ax, x[i] - bar_width/2, means_d[i], sems_d[i], _stars(pvals_d[i]))
-        if pvals_r is not None:
-            _annotate_bar(ax, x[i] + bar_width/2, means_r[i], sems_r[i], _stars(pvals_r[i]))
-    ax.axhline(0, color='k', lw=0.8, alpha=0.5)
-    ax.set_xticks(x); ax.set_xticklabels(areas, fontsize=12)
-    ax.set_ylabel(ylabel, fontsize=13)
-    ax.set_title(title, fontsize=14, fontweight='bold')
-    ax.legend(fontsize=11, frameon=False)
-    if group_label:
-        ax.text(0.98, 0.97, group_label, transform=ax.transAxes,
-                ha='right', va='top', fontsize=10, style='italic',
-                bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='gray', alpha=0.7))
-    plt.tight_layout()
-    fig.savefig(save_path, format='svg', bbox_inches='tight')
-    print(f"Saved → {save_path}")
-    plt.close(fig)
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # CIRCULAR CORRELATION
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1356,47 +1323,6 @@ def main():
         nb_corr, nb_sig, time_rel, areas,
         title='Neural decoding error vs behavioural error',
         save_path=os.path.join(FIG_DIR, '06_neurobeh_timeseries.svg'))
-
-    # 07. Neural–beh bar plot Method A (mean)
-    _bar_plot(areas, _nbm['delay_means'], _nbm['delay_sems'],
-              _nbm['response_means'], _nbm['response_sems'],
-              ylabel='Mean circ. correlation',
-              title='Neural–behavioural correlation: delay vs response (Method A)',
-              save_path=os.path.join(FIG_DIR, '07_neurobeh_barplot_mean.svg'),
-              pvals_d=_nbm['delay_pvals'], pvals_r=_nbm['response_pvals'],
-              group_label=_nbm.get('group_label'))
-
-    # 08. Neural–beh bar plot Method B (slope)
-    _bar_plot(areas, _nbs['delay_means'], _nbs['delay_sems'],
-              _nbs['response_means'], _nbs['response_sems'],
-              ylabel='Slope (corr / s)',
-              title='Neural–behavioural correlation slope: delay vs response (Method B)',
-              save_path=os.path.join(FIG_DIR, '08_neurobeh_barplot_slope.svg'),
-              pvals_d=_nbs['delay_pvals'], pvals_r=_nbs['response_pvals'])
-
-    # 09. Decoding bar plot Method A (circ-corr mean)
-    _bar_plot(areas, _decm['delay_means'], _decm['delay_sems'],
-              _decm['response_means'], _decm['response_sems'],
-              ylabel='Mean decoding circ. correlation',
-              title='Target angle decoding: delay vs response (Method A)',
-              save_path=os.path.join(FIG_DIR, '09_decoding_barplot_mean.svg'),
-              pvals_d=_decm['delay_pvals'], pvals_r=_decm['response_pvals'])
-
-    # 10. Decoding bar plot z-score
-    _bar_plot(areas, _decz['delay_means'], _decz['delay_sems'],
-              _decz['response_means'], _decz['response_sems'],
-              ylabel='Mean distance from shuffle (σ)',
-              title='Target angle decoding accuracy: delay vs response\n(distance from shuffle)',
-              save_path=os.path.join(FIG_DIR, '10_decoding_barplot_zscore.svg'),
-              pvals_d=_decz['delay_pvals'], pvals_r=_decz['response_pvals'])
-
-    # 11. Decoding bar plot Method B (slope)
-    _bar_plot(areas, _decs['delay_means'], _decs['delay_sems'],
-              _decs['response_means'], _decs['response_sems'],
-              ylabel='Slope (corr / s)',
-              title='Target angle decoding slope: delay vs response (Method B)',
-              save_path=os.path.join(FIG_DIR, '11_decoding_barplot_slope.svg'),
-              pvals_d=_decs['delay_pvals'], pvals_r=_decs['response_pvals'])
 
     # 12. Scatter: neural–beh vs decoding
     plot_neurobeh_vs_decoding(
