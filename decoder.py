@@ -61,25 +61,32 @@ from tqdm import tqdm
 # CONFIG  ← edit paths and decoding parameters here
 # ══════════════════════════════════════════════════════════════════════════════
 
-DATA_PATH   = '/home/aarghavan/aslan/data/test.pkl'
-RESULTS_DIR = '/home/aarghavan/aslan/distributedWM-neural/results/'
-PKL_DIR     = os.path.join(RESULTS_DIR, 'pkl')
+from config import (
+    AREAS,
+    DATA_PATH,
+    DELAY_END,
+    DELAY_START,
+    EV_RESPONSE,
+    EV_TARGET_OFF,
+    EV_TARGET_ON,
+    ORIG_BIN,
+    PKL_DIR,
+    RESULTS_DIR,
+    STEP_S,
+    T_START,
+    WINDOW_S,
+)
 
 FORCE_RECOMPUTE = True   # True → ignore cached predictions and rerun decoding
 
 # ── Time-axis parameters (must match load_and_filter.py settings) ─────────────
-T_START    = -2.5    # start of recording epoch (seconds)
-ORIG_BIN   = 0.025   # raw bin size before sliding window (seconds)
 N_BINS_RAW = 240     # number of raw bins in the epoch
-WINDOW_S   = 0.1     # integration window width (seconds)
-STEP_S     = 0.025   # step between bins (seconds)
 
 # ── Smoothing (causal exponential kernel applied after sliding window) ─────────
 SMOOTH_WIDTH = 1.5   # kernel temporal extent (seconds)
 SMOOTH_K     = 2.0   # shape parameter
 
 # ── Decoding ──────────────────────────────────────────────────────────────────
-AREAS        = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
 MIN_NEURONS  = 10
 COMPUTE_NULL = True
 N_SHUFFLES   = 200    # shuffles for standard decoding null
@@ -107,11 +114,6 @@ VARIABLES_TO_DECODE = ['targetX', 'targetY']
 ANGLE_PAIRS = {'targetAngle': ('targetX', 'targetY')}
 
 # ── Event times (seconds, relative to epoch start) ────────────────────────────
-EV_TARGET_ON  = 1.70
-EV_TARGET_OFF = 1.80
-EV_RESPONSE   = 2.55
-DELAY_START   = 1.80
-DELAY_END     = 2.55
 
 # ── Behavioral columns written to trial_data.pkl ──────────────────────────────
 BEH_COLS = ['targAng', 'respAng_dva', 'err', 'folded_err', 'abs_err',

@@ -28,12 +28,10 @@ import numpy as np
 import pandas as pd
 from scipy.stats import wilcoxon, ttest_1samp
 
-RESULTS_DIR = '/home/aarghavan/aslan/distributedWM-neural/results/pkl/'
-ERRORS_CSV  = os.path.join(RESULTS_DIR, 'errors_angular.csv')
-BEHAVIOR_CSV = '/home/aarghavan/aslan/data/behavior_all.csv'
-AREAS       = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
+from config import AREAS, BEHAVIOR_CSV, DELAY_START, DELAY_END, PKL_DIR
+
+ERRORS_CSV  = os.path.join(PKL_DIR, 'errors_angular.csv')
 ANGLE_NAME  = 'targetAngle'
-DELAY_START, DELAY_END = 1.80, 2.55     # absolute seconds
 MIN_TRIALS  = 10
 BEH_ERR_RADIANS = False                 # 'err' is in degrees
 

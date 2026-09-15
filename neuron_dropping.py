@@ -58,22 +58,25 @@ from joblib import Parallel, delayed
 # CONFIG  ← edit here
 # ══════════════════════════════════════════════════════════════════════════════
 
-RESULTS_DIR = '/home/aarghavan/aslan/distributedWM-neural/results/'
-PKL_DIR     = os.path.join(RESULTS_DIR, 'pkl')
-FIG_DIR     = os.path.join(RESULTS_DIR, 'figures')
+from config import (
+    AREAS,
+    AREA_COLORS,
+    DELAY_END,
+    DELAY_START,
+    FIG_DIR,
+    ORIG_BIN,
+    PKL_DIR,
+    RESULTS_DIR,
+    STEP_S,
+    T_START,
+    WINDOW_S,
+)
 
-AREAS       = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
 ANGLE_XY    = ('targetX', 'targetY')          # decode these, recombine via arctan2
 
 # Time axis (must match decoder.py). Used to rebuild the delay-window mask over
 # the FULL-length spikecounts in centered.pkl. NOTE: trial_data.pkl's delay_idx is
 # on the decode-window-CLIPPED axis (fewer bins) and does NOT match centered.pkl.
-T_START     = -2.5
-ORIG_BIN    = 0.025
-WINDOW_S    = 0.1
-STEP_S      = 0.025
-DELAY_START = 1.80
-DELAY_END   = 2.55
 
 # Late-delay robustness toggle. When True, starts the delay window later (~1
 # smoothing time-constant past target-off) to test whether the ranking reflects
@@ -111,10 +114,6 @@ CHANCE_DEG  = 90.0           # reference: mean |error| for uniform angles
 SEED        = 42
 N_JOBS      = -1
 
-AREA_COLORS = {
-    'PFC': '#1f77b4', 'FEF': '#d62728', 'LIP': '#2ca02c', 'Parietal': '#ff7f0e',
-    'IT': '#17becf', 'MT': '#9467bd', 'V4': '#8c564b',
-}
 
 _pkl_out = os.path.join(PKL_DIR, f'neuron_dropping{_SUFFIX}.pkl')
 os.makedirs(FIG_DIR, exist_ok=True)

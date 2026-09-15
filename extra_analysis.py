@@ -35,11 +35,12 @@ import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
 from scipy.stats import wilcoxon
 
-# Shared paths + helpers from the main module. Importing analysis does NOT run
-# its pipeline (analysis.main() is guarded by __main__); it only defines helpers
-# and creates the output directories — same as plot.py used to do.
-import analysis
-from analysis import PKL_DIR, FIG_DIR, AREA_COLORS, _stars
+from config import PKL_DIR, FIG_DIR, AREA_COLORS, EV_TARGET_ON
+
+# _stars still comes from analysis; importing it does NOT run analysis's
+# pipeline (main() is guarded by __main__), it only defines helpers and creates
+# the output directories.
+from analysis import _stars
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -53,7 +54,7 @@ RUN_CCA   = True   # (B) CCA of residual population activity → figs 15 / 16 / 
 
 # Areas ordered ASCENDING the cortical hierarchy (sensory → frontal). With this
 # order, a positive lag = lower area leads = feedforward.
-AREAS = ['V4', 'MT', 'IT', 'LIP', 'Parietal', 'FEF', 'PFC']
+from config import AREAS_SENSORY_FIRST as AREAS  # flow analyses read V4 -> PFC
 
 # Sensory / frontal groups for the aggregated flow figure (fig 14). Editable
 # here independently of analysis.py so groupings can be explored freely.
@@ -882,7 +883,7 @@ def _run_xcorr():
         time_abs     = _td['time']
         angle_pairs  = _td['angle_pairs']
         step_s       = _td['step_s']
-        ev_target_on = _td.get('ev_target_on', analysis.EV_TARGET_ON)
+        ev_target_on = _td.get('ev_target_on', EV_TARGET_ON)
 
         # ── raw per-trial decoding errors (computed by analysis.py) ───────────
         _bl_path = os.path.join(PKL_DIR, 'neurobeh_baseline.pkl')

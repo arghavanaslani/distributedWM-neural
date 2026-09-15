@@ -57,17 +57,25 @@ from scipy.stats import t as t_dist
 # CONFIG  ← edit here
 # ══════════════════════════════════════════════════════════════════════════════
 
-RESULTS_DIR  = '/home/aarghavan/aslan/distributedWM-neural/results/'
-PKL_DIR      = os.path.join(RESULTS_DIR, 'pkl')      # all .pkl output files
-FIG_DIR      = os.path.join(RESULTS_DIR, 'figures')  # all .svg output files
-BEHAVIOR_CSV = '/home/aarghavan/aslan/data/behavior_all.csv'   # fallback only
+from config import (
+    AREAS,
+    AREA_COLORS,
+    BEHAVIOR_CSV,
+    DELAY_END,
+    DELAY_START,
+    EV_RESPONSE,
+    EV_TARGET_OFF,
+    EV_TARGET_ON,
+    FIG_DIR,
+    PKL_DIR,
+    RESULTS_DIR,
+)
 
 RECOMPUTE = True   # False → load cached neurobeh_results.pkl and only replot
 
 # Ordered ASCENDING the cortical hierarchy (sensory → frontal). With this order,
 # a positive lag in the inter-area xcorr = lower area leads = feedforward.
 # AREAS      = ['V4', 'MT', 'IT', 'LIP', 'Parietal', 'FEF', 'PFC']
-AREAS      = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
 # AREAS      = ['LIP', 'FEF', 'PFC']
 # AREAS      = ['V4', 'MT', 'IT', 'Parietal']
 
@@ -76,11 +84,6 @@ AREAS      = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
 ANGLE_NAME = 'targetAngle'
 
 # ── Event times in absolute seconds (must match decoder.py) ──────────────────
-EV_TARGET_ON  = 1.70
-EV_TARGET_OFF = 1.80
-EV_RESPONSE   = 2.55
-DELAY_START   = 1.80   # absolute
-DELAY_END     = 2.55   # absolute
 
 # ── Analysis periods relative to target onset = 0 ────────────────────────────
 EV_TARGET_OFF_REL = 0.10
@@ -107,15 +110,6 @@ YLIM_CIRCCORR = (-0.2, 0.5)
 SHOW_NULL     = True
 SHOW_SEM      = True
 
-AREA_COLORS = {
-    'PFC':      '#1f77b4',
-    'FEF':      '#d62728',
-    'LIP':      '#2ca02c',
-    'Parietal': '#ff7f0e',
-    'IT':       '#17becf',
-    'MT':       '#9467bd',
-    'V4':       '#8c564b',
-}
 
 os.makedirs(PKL_DIR, exist_ok=True)
 os.makedirs(FIG_DIR, exist_ok=True)
