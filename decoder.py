@@ -65,7 +65,7 @@ DATA_PATH   = '/home/aarghavan/aslan/data/test.pkl'
 RESULTS_DIR = '/home/aarghavan/aslan/distributedWM-neural/results/'
 PKL_DIR     = os.path.join(RESULTS_DIR, 'pkl')
 
-FORCE_RECOMPUTE = False   # True → ignore cached predictions and rerun decoding
+FORCE_RECOMPUTE = True   # True → ignore cached predictions and rerun decoding
 
 # ── Time-axis parameters (must match load_and_filter.py settings) ─────────────
 T_START    = -2.5    # start of recording epoch (seconds)
