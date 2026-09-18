@@ -74,7 +74,7 @@ from tqdm import tqdm
 # Constants
 # ---------------------------------------------------------------------------
 
-AREAS = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
+from config import AREAS
 
 # Minimum number of recorded trials for a neuron to be included
 MIN_TRIALS_PER_NEURON = 100

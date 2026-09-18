@@ -29,20 +29,13 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.stats import spearmanr, kruskal
 
-RESULTS_DIR = '/home/aarghavan/aslan/distributedWM-neural/results/'
-PKL_DIR     = os.path.join(RESULTS_DIR, 'pkl')
-FIG_DIR     = os.path.join(RESULTS_DIR, 'figures')
-AREAS       = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
+from config import AREAS, AREA_COLORS, FIG_DIR, PKL_DIR, RESULTS_DIR
 ANGLE_XY    = ('targetX', 'targetY')
 
 # Match neuron_dropping.py to read the corresponding results file.
 LATE_DELAY  = False
 _SUFFIX     = '_latedelay' if LATE_DELAY else ''
 
-AREA_COLORS = {
-    'PFC': '#1f77b4', 'FEF': '#d62728', 'LIP': '#2ca02c', 'Parietal': '#ff7f0e',
-    'IT': '#17becf', 'MT': '#9467bd', 'V4': '#8c564b',
-}
 
 # ── Load ──────────────────────────────────────────────────────────────────────
 with open(os.path.join(PKL_DIR, f'neuron_dropping{_SUFFIX}.pkl'), 'rb') as fh:

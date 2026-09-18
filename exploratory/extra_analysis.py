@@ -35,11 +35,9 @@ import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
 from scipy.stats import wilcoxon
 
-# Shared paths + helpers from the main module. Importing analysis does NOT run
-# its pipeline (analysis.main() is guarded by __main__); it only defines helpers
-# and creates the output directories — same as plot.py used to do.
-import analysis
-from analysis import PKL_DIR, FIG_DIR, AREA_COLORS, _stars
+from config import PKL_DIR, FIG_DIR, AREA_COLORS, EV_TARGET_ON
+
+from core.stats import stars
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -53,7 +51,7 @@ RUN_CCA   = True   # (B) CCA of residual population activity → figs 15 / 16 / 
 
 # Areas ordered ASCENDING the cortical hierarchy (sensory → frontal). With this
 # order, a positive lag = lower area leads = feedforward.
-AREAS = ['V4', 'MT', 'IT', 'LIP', 'Parietal', 'FEF', 'PFC']
+from config import AREAS_SENSORY_FIRST as AREAS  # flow analyses read V4 -> PFC
 
 # Sensory / frontal groups for the aggregated flow figure (fig 14). Editable
 # here independently of analysis.py so groupings can be explored freely.
@@ -481,7 +479,7 @@ def plot_ffr_heatmap(ffr_summary, areas, angle_pairs, fname_prefix='13',
             for i in range(n):
                 for j in range(n):
                     if not np.isfinite(M[i, j]): continue
-                    star = _stars(P[i, j])
+                    star = stars(P[i, j])
                     ax.text(j, i, f'{M[i, j]:+.2f}\n{star}', ha='center', va='center',
                             fontsize=8.5,
                             color='white' if abs(M[i, j]) > 0.6 * vmax else 'black')
@@ -535,7 +533,7 @@ def plot_group_flow(group_flow, sensory, frontal, angle_pairs, fname_prefix='14'
         ymax = float(np.nanmax(np.abs(means) + sems)) if len(means) else 0.1
         for xi, (m, s, pv, nn) in enumerate(zip(means, sems, pvals, nsess)):
             yt = (m + s + 0.04 * ymax) if m >= 0 else (m - s - 0.10 * ymax)
-            ax.text(xi, yt, _stars(pv), ha='center', va='bottom' if m >= 0 else 'top',
+            ax.text(xi, yt, stars(pv), ha='center', va='bottom' if m >= 0 else 'top',
                     fontsize=14, fontweight='bold')
             ax.text(xi, -1.18 * ymax, f'n={nn}', ha='center', va='top', fontsize=9, color='0.4')
 
@@ -548,7 +546,7 @@ def plot_group_flow(group_flow, sensory, frontal, angle_pairs, fname_prefix='14'
                 ax.plot([i1, i1, i2, i2], [yb, yb + 0.05*ymax, yb + 0.05*ymax, yb],
                         color='k', lw=1.2)
                 ax.text((i1 + i2) / 2, yb + 0.07*ymax,
-                        f'encoding vs response: p={p_er:.3f} {_stars(p_er)} (n={n_er})',
+                        f'encoding vs response: p={p_er:.3f} {stars(p_er)} (n={n_er})',
                         ha='center', va='bottom', fontsize=10)
 
         ax.set_xticks(x); ax.set_xticklabels([labels.get(p, p) for p in periods], fontsize=11)
@@ -813,7 +811,7 @@ def plot_cca_popcorr(mean_x, sem_x, lags, areas, step_s):
 
 def _print_flow_summary(ffr_summary, group_flow, windows):
     for period in windows:
-        sig = [f"{a}->{b} FFR={st['mean']:+.2f}{_stars(st['p'])}"
+        sig = [f"{a}->{b} FFR={st['mean']:+.2f}{stars(st['p'])}"
                for ang in ffr_summary.values()
                for (a, b), st in ang.get(period, {}).items()
                if np.isfinite(st['p']) and st['p'] < ALPHA]
@@ -824,10 +822,10 @@ def _print_flow_summary(ffr_summary, group_flow, windows):
             if period not in sdict: continue
             st = sdict[period]
             print(f"    flow {period:9s}: {st['mean']:+.3f}±{st['sem']:.3f} "
-                  f"p={st['p']:.3f} {_stars(st['p'])} (n={st['n_sessions']})")
+                  f"p={st['p']:.3f} {stars(st['p'])} (n={st['n_sessions']})")
         p_er, n_er = _paired_epoch_flow_test(sdict, 'encoding', 'response')
         if np.isfinite(p_er):
-            print(f"    flow encoding vs response: p={p_er:.3f} {_stars(p_er)} (n={n_er})")
+            print(f"    flow encoding vs response: p={p_er:.3f} {stars(p_er)} (n={n_er})")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -882,7 +880,7 @@ def _run_xcorr():
         time_abs     = _td['time']
         angle_pairs  = _td['angle_pairs']
         step_s       = _td['step_s']
-        ev_target_on = _td.get('ev_target_on', analysis.EV_TARGET_ON)
+        ev_target_on = _td.get('ev_target_on', EV_TARGET_ON)
 
         # ── raw per-trial decoding errors (computed by analysis.py) ───────────
         _bl_path = os.path.join(PKL_DIR, 'neurobeh_baseline.pkl')
@@ -905,7 +903,7 @@ def _run_xcorr():
         print("  Summarising feedforward ratios (shuffle test) ...")
         ffr_summary = summarize_ffr(ffr_per_session)
         for period in INTERAREA_WINDOWS:
-            sig = [f"{a}->{b} FFR={st['mean']:+.2f}{_stars(st['p'])}"
+            sig = [f"{a}->{b} FFR={st['mean']:+.2f}{stars(st['p'])}"
                    for ang in ffr_summary.values()
                    for (a, b), st in ang.get(period, {}).items()
                    if np.isfinite(st['p']) and st['p'] < ALPHA]
@@ -920,10 +918,10 @@ def _run_xcorr():
                 if period not in sdict: continue
                 st = sdict[period]
                 print(f"    {period:9s}: flow={st['mean']:+.3f}±{st['sem']:.3f} "
-                      f"p={st['p']:.3f} {_stars(st['p'])} (n={st['n_sessions']})")
+                      f"p={st['p']:.3f} {stars(st['p'])} (n={st['n_sessions']})")
             p_er, n_er = _paired_epoch_flow_test(sdict, 'encoding', 'response')
             if np.isfinite(p_er):
-                print(f"    encoding vs response: p={p_er:.3f} {_stars(p_er)} (n={n_er})")
+                print(f"    encoding vs response: p={p_er:.3f} {stars(p_er)} (n={n_er})")
 
         with open(iax_path, 'wb') as fh:
             pickle.dump({'per_session': per_session, 'mean': mean_x, 'sem': sem_x,

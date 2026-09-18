@@ -9,7 +9,7 @@ target and the saccade endpoint move together, faking coupling with the wrong
 sign. We partial out fixation gaze and see which couplings survive.
 
 Method (per session, on identical trials):
-  a = sin(neural_err  − circ_mean)      # centred, as in _circcorr_vec
+  a = sin(neural_err  − circ_mean)      # centred, as in core.metrics.circ_corr_vec
   b = sin(beh_err      − circ_mean)
   r_full    = corr(a, b)                # == the circular coupling (validation)
   r_partial = corr(resid_a, resid_b)    # after regressing a,b on [fixX, fixY]
@@ -28,12 +28,12 @@ import numpy as np
 import pandas as pd
 from scipy.stats import wilcoxon, ttest_1samp
 
-RESULTS_DIR = '/home/aarghavan/aslan/distributedWM-neural/results/pkl/'
-ERRORS_CSV  = os.path.join(RESULTS_DIR, 'errors_angular.csv')
-BEHAVIOR_CSV = '/home/aarghavan/aslan/data/behavior_all.csv'
-AREAS       = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
+from config import AREAS, BEHAVIOR_CSV, DELAY_START, DELAY_END, PKL_DIR
+
+ERRORS_CSV  = os.path.join(PKL_DIR, 'errors_angular.csv')
+from core.metrics import circ_mean
+from core.stats import mean_sem
 ANGLE_NAME  = 'targetAngle'
-DELAY_START, DELAY_END = 1.80, 2.55     # absolute seconds
 MIN_TRIALS  = 10
 BEH_ERR_RADIANS = False                 # 'err' is in degrees
 
@@ -45,8 +45,6 @@ def _clean_id(s):
              .astype(float).astype('Int64'))
 
 
-def _circ_mean(x):
-    return np.arctan2(np.nanmean(np.sin(x)), np.nanmean(np.cos(x)))
 
 
 def _full_corr(a, b):
@@ -69,11 +67,6 @@ def _vs_zero(v):
     except ValueError: return np.nan
 
 
-def _mean_sem(v):
-    v = v[np.isfinite(v)]
-    n = len(v)
-    return (v.mean() if n else np.nan,
-            v.std(ddof=1) / np.sqrt(n) if n > 1 else np.nan, n)
 
 
 # ── Load + merge gaze ─────────────────────────────────────────────────────────
@@ -122,7 +115,7 @@ for area in AREAS:
     for sess, g in da.groupby('session_idx'):
         # per-trial delay-averaged neural error (circular mean over bins)
         piv = g.groupby('trial_idx').agg(
-            nerr=('error', lambda x: _circ_mean(x.values.astype(float))),
+            nerr=('error', lambda x: circ_mean(x.values.astype(float))),
             brad=('b_rad', 'first'),
             fx=(FIX_X, 'first'),
             fy=(FIX_Y, 'first'))
@@ -130,15 +123,15 @@ for area in AREAS:
         if len(piv) < MIN_TRIALS:
             continue
         nerr = piv['nerr'].values; brad = piv['brad'].values
-        a = np.sin(nerr - _circ_mean(nerr))
-        b = np.sin(brad - _circ_mean(brad))
+        a = np.sin(nerr - circ_mean(nerr))
+        b = np.sin(brad - circ_mean(brad))
         C = np.column_stack([piv['fx'].values - piv['fx'].mean(),
                              piv['fy'].values - piv['fy'].mean()])
         r_full_l.append(_full_corr(a, b))
         r_part_l.append(_partial_corr(a, b, C))
     rf = np.array(r_full_l); rp = np.array(r_part_l)
-    mf, sf, n = _mean_sem(rf)
-    mp, sp, _ = _mean_sem(rp)
+    mf, sf, n = mean_sem(rf, ddof=1)
+    mp, sp, _ = mean_sem(rp, ddof=1)
     pp = _vs_zero(rp)
     summary[area] = (mf, mp, n)
     print(f"  {area:9s} {n:6d} {mf:+8.3f} {mp:+9.3f} {mp-mf:+7.3f} {pp:9.2g}")

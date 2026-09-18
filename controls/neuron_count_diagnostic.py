@@ -18,8 +18,7 @@ import numpy as np
 import pandas as pd
 
 # Must match decoder.py
-DATA_PATH = '/home/aarghavan/aslan/data/test.pkl'
-AREAS     = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
+from config import AREAS, DATA_PATH
 CANDIDATE_N = [5, 10, 15, 20, 25, 30, 40, 50]
 SAVE_CSV  = 'neuron_counts_per_area.csv'   # None to skip
 

@@ -7,7 +7,7 @@ NO re-decoding — reads two existing pkls.
 Tier 1  (caveats #4, #6)
   - Effective n per area  (finite per-session values; the legend n over-counts
     because sessions failing the trial/behaviour gate are kept as NaN rows).
-  - vs-zero significance per area, matching analysis.py's _test_vs_zero
+  - vs-zero significance per area, matching core.stats.test_vs_zero
     (two-sided Wilcoxon for n>=5, t-test for 3-4), then Holm- AND FDR-corrected
     across the 7 areas — the coupling effects sit near threshold, so correction
     matters here.
@@ -33,31 +33,14 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.stats import wilcoxon, ttest_1samp, spearmanr
 
-RESULTS_DIR = '/home/aarghavan/aslan/distributedWM-neural/results/'
-PKL_DIR     = os.path.join(RESULTS_DIR, 'pkl')
-FIG_DIR     = os.path.join(RESULTS_DIR, 'figures')
-AREAS       = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
+from config import AREAS, AREA_COLORS, FIG_DIR, PKL_DIR, RESULTS_DIR
+from core.stats import stars, test_vs_zero
 ALPHA       = 0.05
 DEC_N       = 15          # matched-N decoding level for the scatter (neuron-only)
 
-AREA_COLORS = {
-    'PFC': '#1f77b4', 'FEF': '#d62728', 'LIP': '#2ca02c', 'Parietal': '#ff7f0e',
-    'IT': '#17becf', 'MT': '#9467bd', 'V4': '#8c564b',
-}
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
-def _test_vs_zero(v):
-    """Match analysis.py: two-sided Wilcoxon (n>=5), t-test (3-4), NaN (<3)."""
-    v = v[np.isfinite(v)]
-    if len(v) < 3:
-        return np.nan
-    if len(v) < 5:
-        return float(ttest_1samp(v, 0).pvalue)
-    try:
-        return float(wilcoxon(v, alternative='two-sided').pvalue)
-    except ValueError:
-        return np.nan
 
 
 def _holm(p):
@@ -77,9 +60,6 @@ def _bh(p):
     return adj
 
 
-def _stars(p):
-    if p is None or np.isnan(p): return ''
-    return '***' if p < 1e-3 else '**' if p < 1e-2 else '*' if p < ALPHA else 'n.s.'
 
 
 # ── load coupling ─────────────────────────────────────────────────────────────
@@ -106,7 +86,7 @@ for a in present:
     mean = fin.mean()
     sem  = fin.std(ddof=1) / np.sqrt(n_eff) if n_eff > 1 else np.nan
     rows.append({'area': a, 'n_total': n_total, 'n_eff': n_eff,
-                 'mean': mean, 'sem': sem, 'p_raw': _test_vs_zero(fin)})
+                 'mean': mean, 'sem': sem, 'p_raw': test_vs_zero(fin)})
 
 praw   = np.array([r['p_raw'] for r in rows])
 p_holm = _holm(praw); p_fdr = _bh(praw)
@@ -117,7 +97,7 @@ print(f"  {'area':9s} {'n_leg':>5s} {'n_eff':>5s} {'coupling':>9s} {'sem':>6s} "
 for r, ph, pf in zip(rows, p_holm, p_fdr):
     print(f"  {r['area']:9s} {r['n_total']:5d} {r['n_eff']:5d} "
           f"{r['mean']:+9.3f} {r['sem']:6.3f} "
-          f"{r['p_raw']:8.2g} {ph:8.2g}{_stars(ph):>4s} {pf:8.2g}")
+          f"{r['p_raw']:8.2g} {ph:8.2g}{stars(ph):>4s} {pf:8.2g}")
 print("  (n_leg = legend/row count, n_eff = sessions actually contributing)")
 
 
@@ -145,7 +125,7 @@ if dec_deg:
     print(f"  {'area':9s} {'dec_err(°)':>10s} {'coupling':>9s} {'p_holm':>8s}")
     for a in sorted(areas_sc, key=lambda a: dec_deg[a]):   # best decoder first
         print(f"  {a:9s} {dec_deg[a]:10.1f} {coupling[a]:+9.3f} "
-              f"{coup_holm[a]:8.2g}{_stars(coup_holm[a]):>4s}")
+              f"{coup_holm[a]:8.2g}{stars(coup_holm[a]):>4s}")
     print(f"\n  across-area Spearman(decoding, coupling) = {rho:+.2f}, p = {p_rho:.2g}  "
           f"(n={len(areas_sc)} → descriptive only)")
 

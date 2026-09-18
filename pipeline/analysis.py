@@ -57,17 +57,27 @@ from scipy.stats import t as t_dist
 # CONFIG  ← edit here
 # ══════════════════════════════════════════════════════════════════════════════
 
-RESULTS_DIR  = '/home/aarghavan/aslan/distributedWM-neural/results/'
-PKL_DIR      = os.path.join(RESULTS_DIR, 'pkl')      # all .pkl output files
-FIG_DIR      = os.path.join(RESULTS_DIR, 'figures')  # all .svg output files
-BEHAVIOR_CSV = '/home/aarghavan/aslan/data/behavior_all.csv'   # fallback only
+from config import (
+    AREAS,
+    AREA_COLORS,
+    BEHAVIOR_CSV,
+    DELAY_END,
+    DELAY_START,
+    EV_RESPONSE,
+    EV_TARGET_OFF,
+    EV_TARGET_ON,
+    FIG_DIR,
+    PKL_DIR,
+    RESULTS_DIR,
+)
+from core.metrics import circ_corr_vec
+from core.stats import mean_sem, stars, test_vs_zero
 
 RECOMPUTE = True   # False → load cached neurobeh_results.pkl and only replot
 
 # Ordered ASCENDING the cortical hierarchy (sensory → frontal). With this order,
 # a positive lag in the inter-area xcorr = lower area leads = feedforward.
 # AREAS      = ['V4', 'MT', 'IT', 'LIP', 'Parietal', 'FEF', 'PFC']
-AREAS      = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
 # AREAS      = ['LIP', 'FEF', 'PFC']
 # AREAS      = ['V4', 'MT', 'IT', 'Parietal']
 
@@ -76,11 +86,6 @@ AREAS      = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
 ANGLE_NAME = 'targetAngle'
 
 # ── Event times in absolute seconds (must match decoder.py) ──────────────────
-EV_TARGET_ON  = 1.70
-EV_TARGET_OFF = 1.80
-EV_RESPONSE   = 2.55
-DELAY_START   = 1.80   # absolute
-DELAY_END     = 2.55   # absolute
 
 # ── Analysis periods relative to target onset = 0 ────────────────────────────
 EV_TARGET_OFF_REL = 0.10
@@ -107,15 +112,6 @@ YLIM_CIRCCORR = (-0.2, 0.5)
 SHOW_NULL     = True
 SHOW_SEM      = True
 
-AREA_COLORS = {
-    'PFC':      '#1f77b4',
-    'FEF':      '#d62728',
-    'LIP':      '#2ca02c',
-    'Parietal': '#ff7f0e',
-    'IT':       '#17becf',
-    'MT':       '#9467bd',
-    'V4':       '#8c564b',
-}
 
 os.makedirs(PKL_DIR, exist_ok=True)
 os.makedirs(FIG_DIR, exist_ok=True)
@@ -126,19 +122,6 @@ _results_pkl = os.path.join(PKL_DIR, 'neurobeh_results.pkl')
 # STATISTICAL HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _circcorr_vec(pred_v, true_v):
-    """Vectorised circular correlation for all time bins at once.
-    pred_v: (n_valid, n_time), true_v: (n_valid,) → (n_time,)"""
-    alpha_bar = np.arctan2(np.nanmean(np.sin(pred_v), axis=0),
-                            np.nanmean(np.cos(pred_v), axis=0))
-    beta_bar  = np.arctan2(np.nanmean(np.sin(true_v)),
-                            np.nanmean(np.cos(true_v)))
-    sin_a = np.sin(pred_v - alpha_bar)
-    sin_b = np.sin(true_v  - beta_bar)[:, None]
-    num   = np.nansum(sin_a * sin_b, axis=0)
-    denom = np.sqrt(np.nansum(sin_a ** 2, axis=0) * np.nansum(sin_b ** 2))
-    with np.errstate(invalid='ignore', divide='ignore'):
-        return np.where(denom > 0, num / denom, np.nan)
 
 
 def _circcorr_null_vec(pred_v, true_v, n_perms, rng):
@@ -165,30 +148,10 @@ def _z_from_shuffle(err_real, err_shuf):
     return (mu - err_real) / np.where(sd > 0, sd, np.nan)
 
 
-def _mean_sem(arr, axis=0):
-    m   = np.nanmean(arr, axis=axis)
-    n   = np.sum(~np.isnan(arr), axis=axis)
-    sem = np.nanstd(arr, axis=axis) / np.where(n > 0, np.sqrt(n), np.nan)
-    return m, sem
 
 
-def _stars(p):
-    if p is None or np.isnan(p): return ''
-    if p < 0.001: return '***'
-    if p < 0.01:  return '**'
-    if p < ALPHA: return '*'
-    return 'n.s.'
 
 
-def _test_vs_zero(values):
-    clean = values[np.isfinite(values)]
-    if len(clean) < 3:  return np.nan
-    if len(clean) < 5:
-        _, p = ttest_1samp(clean, 0); return float(p)
-    try:
-        _, p = wilcoxon(clean, alternative='two-sided'); return float(p)
-    except ValueError:
-        return np.nan
 
 
 def _cluster_perm_1samp(r_mat, n_perm=N_PERM, thresh_p=0.05, seed=42):
@@ -300,39 +263,6 @@ def _draw_sig_ribbon(ax, t, sig_mask, color, y_pos, height=0.012, alpha=0.4):
                     transform=ax.get_xaxis_transform(), clip_on=False)
 
 
-def _bar_plot(areas, means_d, sems_d, means_r, sems_r,
-              ylabel, title, save_path,
-              pvals_d=None, pvals_r=None, group_label=None):
-    x         = np.arange(len(areas))
-    bar_width  = 0.35
-    fig, ax    = plt.subplots(figsize=(11, 5))
-    for i, area in enumerate(areas):
-        ec = AREA_COLORS.get(area, 'k')
-        ax.bar(x[i] - bar_width/2, means_d[i], bar_width,
-               yerr=sems_d[i], capsize=5, color='lightgray', edgecolor=ec, linewidth=2,
-               label=('Delay' if i == 0 else '_'))
-        ax.bar(x[i] + bar_width/2, means_r[i], bar_width,
-               yerr=sems_r[i], capsize=5, color='lightblue', edgecolor=ec, linewidth=2,
-               label=('Response' if i == 0 else '_'))
-        if pvals_d is not None:
-            _annotate_bar(ax, x[i] - bar_width/2, means_d[i], sems_d[i], _stars(pvals_d[i]))
-        if pvals_r is not None:
-            _annotate_bar(ax, x[i] + bar_width/2, means_r[i], sems_r[i], _stars(pvals_r[i]))
-    ax.axhline(0, color='k', lw=0.8, alpha=0.5)
-    ax.set_xticks(x); ax.set_xticklabels(areas, fontsize=12)
-    ax.set_ylabel(ylabel, fontsize=13)
-    ax.set_title(title, fontsize=14, fontweight='bold')
-    ax.legend(fontsize=11, frameon=False)
-    if group_label:
-        ax.text(0.98, 0.97, group_label, transform=ax.transAxes,
-                ha='right', va='top', fontsize=10, style='italic',
-                bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='gray', alpha=0.7))
-    plt.tight_layout()
-    fig.savefig(save_path, format='svg', bbox_inches='tight')
-    print(f"Saved → {save_path}")
-    plt.close(fig)
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # CIRCULAR CORRELATION
 # ══════════════════════════════════════════════════════════════════════════════
@@ -351,7 +281,7 @@ def _circcorr_session(session, preds_dict, trial_df, angle_pairs, n_null_perms):
         true_ang = np.arctan2(tY, tX)
         valid    = np.isfinite(true_ang)
         pred_v   = pred_ang[valid]; true_v = true_ang[valid]
-        real_out[angle_name] = _circcorr_vec(pred_v, true_v)
+        real_out[angle_name] = circ_corr_vec(pred_v, true_v)
         null_mat = _circcorr_null_vec(pred_v, true_v, n_null_perms, rng)
         with np.errstate(all='ignore'):
             null_out[angle_name] = np.nanmean(null_mat, axis=0)
@@ -501,7 +431,7 @@ def _ct_circcorr_session(session, cross_preds, trial_df, angle_pairs):
         valid    = np.isfinite(true_ang)
         pred_v   = pred_ang[valid]
         n_valid, n_tr, n_te = pred_v.shape
-        cc_flat = _circcorr_vec(pred_v.reshape(n_valid, n_tr * n_te), true_ang[valid])
+        cc_flat = circ_corr_vec(pred_v.reshape(n_valid, n_tr * n_te), true_ang[valid])
         result[angle_name] = cc_flat.reshape(n_tr, n_te)
     return session, result
 
@@ -647,7 +577,7 @@ def _circ_corr_series(area_df, time_abs, n_time):
         if valid.sum() < MIN_TRIALS: continue
         neural_mat = piv.values[valid]
         behav_vec  = beh.values[valid]
-        r_series   = _circcorr_vec(neural_mat, behav_vec)
+        r_series   = circ_corr_vec(neural_mat, behav_vec)
         n_valid_per_bin = np.sum(np.isfinite(neural_mat), axis=0)
         r_series[n_valid_per_bin < MIN_TRIALS] = np.nan
         r_mat[si] = r_series
@@ -852,7 +782,7 @@ def plot_neurobeh_timeseries(nb_r, nb_sig, time_rel, areas, title, save_path):
     for area in areas:
         if area not in nb_r: continue
         sessions, r_mat = nb_r[area]
-        m, sem = _mean_sem(r_mat, axis=0)
+        m, sem, _ = mean_sem(r_mat, axis=0, ddof=0)
         c = AREA_COLORS[area]
         ax.plot(time_rel, m, color=c, lw=3.5, label=f'{area} (n={len(sessions)})')
         ax.fill_between(time_rel, m - sem, m + sem, alpha=0.2, color=c)
@@ -961,7 +891,7 @@ def plot_decoding_vs_coupling_profiles(areas, dec_means, dec_sems, dec_pvals,
             ax.bar(x[i], means[i], 0.7, yerr=(sems[i] if np.isfinite(sems[i]) else None),
                    capsize=4, color=c, edgecolor=c, linewidth=1.5, alpha=0.85)
             if pvals is not None:
-                _annotate_bar(ax, x[i], means[i], sems[i], _stars(pvals[i]))
+                _annotate_bar(ax, x[i], means[i], sems[i], stars(pvals[i]))
         ax.axhline(0, color='k', lw=0.8, alpha=0.5)
         ax.set_xticks(x); ax.set_xticklabels(areas, fontsize=12)
         ax.set_ylabel(ylabel, fontsize=12)
@@ -1095,7 +1025,7 @@ def main():
             area_df = df_errors[df_errors['area'] == area]
             if area_df.empty: continue
             nb_corr[area] = _circ_corr_series(area_df, time_abs, n_time)
-            m, _ = _mean_sem(nb_corr[area][1], axis=0)
+            m, _, _ = mean_sem(nb_corr[area][1], axis=0, ddof=0)
             print(f"  {area}: {len(nb_corr[area][0])} sessions  |  {np.sum(~np.isnan(m))}/{n_time} bins")
 
         print("  Running cluster permutation tests (neural–beh) ...")
@@ -1162,7 +1092,7 @@ def main():
                 sessions_l, r_mat = r_mat_dict[area]
                 vals = np.nanmean(r_mat[:, mask], axis=1)
                 per_sess[area] = {'sessions': sessions_l, 'values': vals}
-                m, s = _mean_sem(vals); p = _test_vs_zero(vals)
+                m, s, _ = mean_sem(vals, axis=0, ddof=0); p = test_vs_zero(vals)
                 means.append(m); sems.append(s); pvals.append(p)
             return means, sems, pvals, per_sess
 
@@ -1184,8 +1114,8 @@ def main():
             sensory_d = np.concatenate(_s_arrs); sensory_d = sensory_d[np.isfinite(sensory_d)]
             if len(frontal_d) >= 3 and len(sensory_d) >= 3:
                 _, p_grp = mannwhitneyu(frontal_d, sensory_d, alternative='greater')
-                group_label = f'Frontal > Sensory (delay): p={p_grp:.3f} {_stars(p_grp)}'
-                print(f"\n  Frontal vs Sensory (delay): p={p_grp:.4f} {_stars(p_grp)}")
+                group_label = f'Frontal > Sensory (delay): p={p_grp:.3f} {stars(p_grp)}'
+                print(f"\n  Frontal vs Sensory (delay): p={p_grp:.4f} {stars(p_grp)}")
             else:
                 group_label = None
         else:
@@ -1202,8 +1132,8 @@ def main():
                 _, r_mat = r_mat_dict[area]
                 sl_d, _ = _slope_per_session(r_mat, d_mask, time_rel[d_mask])
                 sl_r, _ = _slope_per_session(r_mat, r_mask, time_rel[r_mask])
-                dm, ds = _mean_sem(sl_d); dp = _test_vs_zero(sl_d)
-                rm, rs = _mean_sem(sl_r); rp = _test_vs_zero(sl_r)
+                dm, ds, _ = mean_sem(sl_d, axis=0, ddof=0); dp = test_vs_zero(sl_d)
+                rm, rs, _ = mean_sem(sl_r, axis=0, ddof=0); rp = test_vs_zero(sl_r)
                 sd_m.append(dm); sd_s.append(ds); sd_p.append(dp)
                 sr_m.append(rm); sr_s.append(rs); sr_p.append(rp)
             return sd_m, sd_s, sd_p, sr_m, sr_s, sr_p
@@ -1356,47 +1286,6 @@ def main():
         nb_corr, nb_sig, time_rel, areas,
         title='Neural decoding error vs behavioural error',
         save_path=os.path.join(FIG_DIR, '06_neurobeh_timeseries.svg'))
-
-    # 07. Neural–beh bar plot Method A (mean)
-    _bar_plot(areas, _nbm['delay_means'], _nbm['delay_sems'],
-              _nbm['response_means'], _nbm['response_sems'],
-              ylabel='Mean circ. correlation',
-              title='Neural–behavioural correlation: delay vs response (Method A)',
-              save_path=os.path.join(FIG_DIR, '07_neurobeh_barplot_mean.svg'),
-              pvals_d=_nbm['delay_pvals'], pvals_r=_nbm['response_pvals'],
-              group_label=_nbm.get('group_label'))
-
-    # 08. Neural–beh bar plot Method B (slope)
-    _bar_plot(areas, _nbs['delay_means'], _nbs['delay_sems'],
-              _nbs['response_means'], _nbs['response_sems'],
-              ylabel='Slope (corr / s)',
-              title='Neural–behavioural correlation slope: delay vs response (Method B)',
-              save_path=os.path.join(FIG_DIR, '08_neurobeh_barplot_slope.svg'),
-              pvals_d=_nbs['delay_pvals'], pvals_r=_nbs['response_pvals'])
-
-    # 09. Decoding bar plot Method A (circ-corr mean)
-    _bar_plot(areas, _decm['delay_means'], _decm['delay_sems'],
-              _decm['response_means'], _decm['response_sems'],
-              ylabel='Mean decoding circ. correlation',
-              title='Target angle decoding: delay vs response (Method A)',
-              save_path=os.path.join(FIG_DIR, '09_decoding_barplot_mean.svg'),
-              pvals_d=_decm['delay_pvals'], pvals_r=_decm['response_pvals'])
-
-    # 10. Decoding bar plot z-score
-    _bar_plot(areas, _decz['delay_means'], _decz['delay_sems'],
-              _decz['response_means'], _decz['response_sems'],
-              ylabel='Mean distance from shuffle (σ)',
-              title='Target angle decoding accuracy: delay vs response\n(distance from shuffle)',
-              save_path=os.path.join(FIG_DIR, '10_decoding_barplot_zscore.svg'),
-              pvals_d=_decz['delay_pvals'], pvals_r=_decz['response_pvals'])
-
-    # 11. Decoding bar plot Method B (slope)
-    _bar_plot(areas, _decs['delay_means'], _decs['delay_sems'],
-              _decs['response_means'], _decs['response_sems'],
-              ylabel='Slope (corr / s)',
-              title='Target angle decoding slope: delay vs response (Method B)',
-              save_path=os.path.join(FIG_DIR, '11_decoding_barplot_slope.svg'),
-              pvals_d=_decs['delay_pvals'], pvals_r=_decs['response_pvals'])
 
     # 12. Scatter: neural–beh vs decoding
     plot_neurobeh_vs_decoding(

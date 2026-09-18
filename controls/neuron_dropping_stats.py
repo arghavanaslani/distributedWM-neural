@@ -21,11 +21,10 @@ from itertools import combinations
 import numpy as np
 from scipy.stats import mannwhitneyu
 
-RESULTS_DIR = '/home/aarghavan/aslan/distributedWM-neural/results/'
-PKL_DIR     = os.path.join(RESULTS_DIR, 'pkl')
-AREAS       = ['PFC', 'FEF', 'LIP', 'Parietal', 'IT', 'MT', 'V4']
+from config import AREAS, PKL_DIR, RESULTS_DIR
 
 # Match these to neuron_dropping.py to read the corresponding results file.
+from core.stats import stars
 LATE_DELAY   = True
 MATCH_TRIALS = 80
 _SUFFIX      = ('_latedelay' if LATE_DELAY else '') + (f'_t{MATCH_TRIALS}' if MATCH_TRIALS else '')
@@ -48,8 +47,6 @@ def _holm(pvals):
     return adj
 
 
-def _stars(p):
-    return '***' if p < 1e-3 else '**' if p < 1e-2 else '*' if p < 0.05 else 'n.s.'
 
 
 for N in MATCHED_N:
@@ -83,7 +80,7 @@ for N in MATCHED_N:
         a, b = pairs[i]
         better, worse = (a, b) if means[a] < means[b] else (b, a)
         print(f"  {better:8s} < {worse:8s}  Δ={abs(means[a]-means[b]):4.1f}°  "
-              f"p_holm={padj[i]:.2g} {_stars(padj[i])}")
+              f"p_holm={padj[i]:.2g} {stars(padj[i])}")
 
     # Claims of interest
     def _get(a, b):
@@ -98,12 +95,12 @@ for N in MATCHED_N:
               f"({'all significant' if np.nanmax(lip_all) < 0.05 else 'NOT all significant'})")
     if 'FEF' in present and 'PFC' in present:
         p = _get('FEF', 'PFC')
-        print(f"  FEF vs PFC:         p_holm = {p:.2g} {_stars(p)}  "
+        print(f"  FEF vs PFC:         p_holm = {p:.2g} {stars(p)}  "
               f"({'matched (n.s.) — clean dissociation' if p >= 0.05 else 'differ'})")
     if 'MT' in present:
         for other in ('FEF', 'PFC'):
             if other in present:
                 p = _get('MT', other)
-                print(f"  MT vs {other}:          p_holm = {p:.2g} {_stars(p)}")
+                print(f"  MT vs {other}:          p_holm = {p:.2g} {stars(p)}")
 
 print("\nDone.")
