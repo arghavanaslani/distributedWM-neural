@@ -58,6 +58,8 @@ def build_parser():
                    help='restrict to these areas (default: all seven)')
     g.add_argument('--data', metavar='DIR', help='override the data directory')
     g.add_argument('--results', metavar='DIR', help='override the results directory')
+    g.add_argument('--data-file', metavar='NAME', default=None,
+                   help='data filename inside the data directory (default: test.pkl)')
 
     g = p.add_argument_group('decode')
     g.add_argument('--force', action='store_true',
@@ -83,6 +85,7 @@ def main():
     if args.areas:        env['DISTWM_AREAS']        = ','.join(args.areas)
     if args.data:         env['DISTWM_DATA']         = args.data
     if args.results:      env['DISTWM_RESULTS']      = args.results
+    if args.data_file:    env['DISTWM_DATA_FILE']    = args.data_file
     if args.force:        env['DISTWM_FORCE']        = '1'
     if args.replot:       env['DISTWM_REPLOT']       = '1'
     if args.max_sessions: env['DISTWM_MAX_SESSIONS'] = str(args.max_sessions)
