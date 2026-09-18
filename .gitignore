@@ -5,3 +5,4 @@ __pycache__/
 results/
 *.pkl
 data/
+.eegdash_cache/
