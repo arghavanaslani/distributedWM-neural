@@ -69,11 +69,12 @@ from config import (
     FIG_DIR,
     PKL_DIR,
     RESULTS_DIR,
+    env_bool,
 )
 from core.metrics import circ_corr_vec
 from core.stats import mean_sem, stars, test_vs_zero
 
-RECOMPUTE = True   # False → load cached neurobeh_results.pkl and only replot
+RECOMPUTE = not env_bool('DISTWM_REPLOT', False)   # run.py --replot
 
 # Ordered ASCENDING the cortical hierarchy (sensory → frontal). With this order,
 # a positive lag in the inter-area xcorr = lower area leads = feedforward.

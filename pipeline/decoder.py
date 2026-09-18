@@ -75,9 +75,11 @@ from config import (
     STEP_S,
     T_START,
     WINDOW_S,
+    env_bool,
+    env_int,
 )
 
-FORCE_RECOMPUTE = True   # True → ignore cached predictions and rerun decoding
+FORCE_RECOMPUTE = env_bool('DISTWM_FORCE', False)   # run.py --force
 
 # ── Time-axis parameters (must match load_and_filter.py settings) ─────────────
 N_BINS_RAW = 240     # number of raw bins in the epoch
@@ -100,7 +102,7 @@ ALPHA_CV_FOLDS = 3
 USE_PCA = False
 N_PCS   = 15
 
-MAX_SESSIONS = None   # set to int for quick testing; None = all
+MAX_SESSIONS = env_int('DISTWM_MAX_SESSIONS', None)   # run.py --max-sessions
 
 # ── Cross-temporal decoding ────────────────────────────────────────────────────
 COMPUTE_CROSS_TEMPORAL = True
