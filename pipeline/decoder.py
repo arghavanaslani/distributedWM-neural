@@ -286,24 +286,69 @@ def _smooth_session(X, kernel):
     return out
 
 
+def _cache_fingerprint(data):
+    """Identify the dataset a smoothing/centering cache was built from.
+
+    Computed from the RAW data, before smoothing drops zero-variance neurons,
+    so the write-time and read-time fingerprints are comparable.
+    """
+    return {
+        'source':     DATA_PATH,
+        'n_sessions': len(data['spikecounts']),
+        'shapes':     [tuple(np.asarray(sc).shape) for sc in data['spikecounts']],
+        'n_trials':   [len(t) for t in data['trial']],
+    }
+
+
+def _fingerprint_mismatch(cached, current):
+    """Human-readable reason the cache does not match, or None if it does."""
+    if cached is None:
+        return "cache predates fingerprinting"
+    if cached.get('source') != current['source']:
+        return f"built from {cached.get('source')}, now using {current['source']}"
+    if cached.get('n_sessions') != current['n_sessions']:
+        return f"{cached.get('n_sessions')} sessions cached, {current['n_sessions']} in data"
+    if cached.get('shapes') != current['shapes']:
+        return "per-session spikecount shapes differ"
+    if cached.get('n_trials') != current['n_trials']:
+        return "per-session trial counts differ"
+    return None
+
+
 def load_or_compute_smoothed_centered(data):
     kernel = _make_exp_kernel()
+    fingerprint = _cache_fingerprint(data)
 
     if os.path.exists(CENTERED_PATH):
-        print(f"Loading centered data from:\n  {CENTERED_PATH}")
         with open(CENTERED_PATH, 'rb') as fh:
             pkg = pickle.load(fh)
         if not isinstance(pkg, dict) or 'spikecounts' not in pkg:
             raise ValueError(f"Invalid format in {CENTERED_PATH}")
-        data['spikecounts'] = pkg['spikecounts']
-        data['unit']        = pkg['unit']
-        print("  Done.\n")
-        return data
+        why = _fingerprint_mismatch(pkg.get('fingerprint'), fingerprint)
+        if why is None:
+            print(f"Loading centered data from:\n  {CENTERED_PATH}")
+            data['spikecounts'] = pkg['spikecounts']
+            data['unit']        = pkg['unit']
+            print("  Done.\n")
+            return data
+        print(f"Ignoring stale cache {CENTERED_PATH}\n  reason: {why}\n  recomputing.")
 
+    cached_smoothed = None
     if os.path.exists(SMOOTHED_PATH):
-        print(f"Loading smoothed data from:\n  {SMOOTHED_PATH}")
         with open(SMOOTHED_PATH, 'rb') as fh:
-            data['spikecounts'] = pickle.load(fh)
+            pkg = pickle.load(fh)
+        if isinstance(pkg, dict) and 'spikecounts' in pkg:
+            why = _fingerprint_mismatch(pkg.get('fingerprint'), fingerprint)
+            if why is None:
+                cached_smoothed = pkg['spikecounts']
+            else:
+                print(f"Ignoring stale cache {SMOOTHED_PATH}\n  reason: {why}")
+        else:
+            print(f"Ignoring {SMOOTHED_PATH} (predates fingerprinting)")
+
+    if cached_smoothed is not None:
+        print(f"Loading smoothed data from:\n  {SMOOTHED_PATH}")
+        data['spikecounts'] = cached_smoothed
         print("  Done.")
     else:
         print("Computing exponential smoothing ...")
@@ -312,7 +357,8 @@ def load_or_compute_smoothed_centered(data):
             for sc in tqdm(data['spikecounts'], desc='Smoothing')
         ]
         with open(SMOOTHED_PATH, 'wb') as fh:
-            pickle.dump(data['spikecounts'], fh)
+            pickle.dump({'spikecounts': data['spikecounts'],
+                         'fingerprint': fingerprint}, fh)
         print(f"  Saved → {SMOOTHED_PATH}")
 
     print("\nCentering (z-scoring neurons across trials × time) ...")
@@ -329,7 +375,8 @@ def load_or_compute_smoothed_centered(data):
         assert data['spikecounts'][s].shape[1] == len(data['unit'][s])
 
     with open(CENTERED_PATH, 'wb') as fh:
-        pickle.dump({'spikecounts': data['spikecounts'], 'unit': data['unit']}, fh)
+        pickle.dump({'spikecounts': data['spikecounts'], 'unit': data['unit'],
+                     'fingerprint': fingerprint}, fh)
     print(f"  Saved → {CENTERED_PATH}\n")
     return data
 
