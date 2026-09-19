@@ -91,7 +91,7 @@ SMOOTH_K     = 2.0   # shape parameter
 # ── Decoding ──────────────────────────────────────────────────────────────────
 MIN_NEURONS  = 10
 COMPUTE_NULL = True
-N_SHUFFLES   = 200    # shuffles for standard decoding null
+N_SHUFFLES   = env_int('DISTWM_N_SHUFFLES', 200)   # run.py --shuffles
 N_SHUFFLES_CT = 50    # shuffles for cross-temporal null (more expensive)
 CV_FOLDS     = 5
 USE_LOO      = False
@@ -105,7 +105,7 @@ N_PCS   = 15
 MAX_SESSIONS = env_int('DISTWM_MAX_SESSIONS', None)   # run.py --max-sessions
 
 # ── Cross-temporal decoding ────────────────────────────────────────────────────
-COMPUTE_CROSS_TEMPORAL = True
+COMPUTE_CROSS_TEMPORAL = not env_bool('DISTWM_NO_CT', False)   # run.py --no-cross-temporal
 
 # ── Decode time window ────────────────────────────────────────────────────────
 DECODE_START = 1      # only decode from this time (seconds); None = full epoch

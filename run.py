@@ -66,6 +66,10 @@ def build_parser():
                    help='ignore cached predictions and rerun decoding')
     g.add_argument('--max-sessions', type=int, metavar='N',
                    help='decode only the first N sessions (quick test)')
+    g.add_argument('--no-cross-temporal', action='store_true',
+                   help='skip cross-temporal decoding (the expensive part)')
+    g.add_argument('--shuffles', type=int, metavar='N',
+                   help='permutations for the null (default 200)')
 
     g = p.add_argument_group('analysis')
     g.add_argument('--replot', action='store_true',
@@ -89,6 +93,8 @@ def main():
     if args.force:        env['DISTWM_FORCE']        = '1'
     if args.replot:       env['DISTWM_REPLOT']       = '1'
     if args.max_sessions: env['DISTWM_MAX_SESSIONS'] = str(args.max_sessions)
+    if args.no_cross_temporal: env['DISTWM_NO_CT']    = '1'
+    if args.shuffles:     env['DISTWM_N_SHUFFLES']    = str(args.shuffles)
     os.environ.update(env)
 
     if args.show_config:
